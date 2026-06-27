@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#1a1a2e" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Daily Brief" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <title>Daily Brief</title>
+  <style>
+    :root {
+      --bg: #0f0f1a;
+      --surface: #1a1a2e;
+      --surface2: #22223a;
+      --border: rgba(255,255,255,0.08);
+      --text: #f0f0f5;
+      --muted: #888899;
+      --accent: #6c8ebf;
+      --irish: #2d7a4f;
+      --irish-bg: #1a3328;
+      --irish-text: #5ecf8a;
+      --world: #2a5298;
+      --world-bg: #162045;
+      --world-text: #7aaef5;
+      --politics: #6b3fa0;
+      --politics-bg: #2a1840;
+      --politics-text: #c084fc;
+      --econ: #8a5c1a;
+      --econ-bg: #362208;
+      --econ-text: #f59e0b;
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* HEADER */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 16px 0;
+      padding-top: calc(14px + env(safe-area-inset-top));
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .app-title { font-size: 20px; font-weight: 700; color: var(--text); }
+    .app-date { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    .header-right { display: flex; align-items: center; gap: 10px; }
+
+    .refresh-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      transition: color 0.2s;
+    }
+    .refresh-btn:hover { color: var(--text); }
+    .refresh-btn.spinning { animation: spin 0.7s linear infinite; }
+
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #3ecf8a;
+      box-shadow: 0 0 6px #3ecf8a88;
+    }
+    .status-dot.loading { background: var(--econ-text); box-shadow: 0 0 6px #f59e0b88; animation: pulse 1s ease infinite; }
+    .status-dot.error { background: #f87171; box-shadow: none; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    /* TABS */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding-bottom: 0;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+
+    .tab {
+      flex-shrink: 0;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      color: var(--muted);
+      border: none;
+      background: none;
+      border-bottom: 2px solid transparent;
+      font-family: inherit;
+      white-space: nowrap;
+      transition: color 0.15s;
+    }
+    .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+    .tab:hover:not(.active) { color: #bbb; }
+
+    /* FEED */
+    .feed { padding: 12px 16px; }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin: 16px 0 8px;
+    }
+    .section-label:first-child { margin-top: 0; }
+
+    /* ARTICLE CARD */
+    .article {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 10px;
+      cursor: pointer;
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+    .article:hover { border-color: rgba(255,255,255,0.15); }
+    .article.open { border-color: var(--accent); }
+
+    .article-header { padding: 13px 14px; }
+
+    .article-meta {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 7px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+      letter-spacing: 0.03em;
+    }
+    .badge-irish { background: var(--irish-bg); color: var(--irish-text); }
+    .badge-world { background: var(--world-bg); color: var(--world-text); }
+    .badge-politics { background: var(--politics-bg); color: var(--politics-text); }
+    .badge-econ { background: var(--econ-bg); color: var(--econ-text); }
+
+    .article-source { font-size: 11px; color: var(--muted); font-weight: 500; }
+    .article-time { font-size: 11px; color: var(--muted); margin-left: auto; }
+
+    .article-title {
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 1.4;
+      color: var(--text);
+    }
+
+    .article-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.28s ease;
+    }
+    .article.open .article-body { max-height: 600px; }
+
+    .article-body-inner {
+      padding: 0 14px 14px;
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+      margin-top: 0;
+    }
+
+    .article-summary {
+      font-size: 14px;
+      line-height: 1.65;
+      color: #b0b0c0;
+      margin-bottom: 12px;
+    }
+
+    .read-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent);
+      text-decoration: none;
+      padding: 7px 14px;
+      background: rgba(108,142,191,0.12);
+      border-radius: 8px;
+      border: 1px solid rgba(108,142,191,0.25);
+      transition: background 0.15s;
+    }
+    .read-link:hover { background: rgba(108,142,191,0.2); }
+
+    .chevron {
+      margin-left: auto;
+      color: var(--muted);
+      font-size: 12px;
+      transition: transform 0.2s;
+      display: inline-block;
+    }
+    .article.open .chevron { transform: rotate(180deg); }
+
+    /* STATES */
+    .loading-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .loader {
+      width: 36px; height: 36px;
+      border: 3px solid var(--surface2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    .error-state {
+      text-align: center;
+      padding: 50px 20px;
+    }
+    .error-icon { font-size: 36px; margin-bottom: 12px; }
+    .error-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+    .error-msg { font-size: 13px; color: var(--muted); margin-bottom: 20px; line-height: 1.6; }
+    .retry-btn {
+      padding: 10px 24px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .count-badge {
+      font-size: 10px;
+      background: var(--surface2);
+      color: var(--muted);
+      padding: 1px 6px;
+      border-radius: 10px;
+      margin-left: 4px;
+    }
+
+    .install-banner {
+      margin: 0 16px 12px;
+      background: linear-gradient(135deg, #1a2540, #1a1a2e);
+      border: 1px solid rgba(108,142,191,0.3);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+    }
+    .install-banner span { color: #b0b8d0; line-height: 1.4; }
+    .install-banner strong { color: var(--text); }
+    .install-btn {
+      flex-shrink: 0;
+      padding: 7px 12px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      margin-left: auto;
+    }
+    .close-banner {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 0 0 0 4px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="app-title">📰 Daily Brief</div>
+      <div class="app-date" id="app-date"></div>
+    </div>
+    <div class="header-right">
+      <div class="status-dot" id="status-dot"></div>
+      <button class="refresh-btn" id="refresh-btn" onclick="loadNews()" title="Refresh">↻</button>
+    </div>
+  </div>
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-tab="all" onclick="switchTab(this)">All</button>
+    <button class="tab" data-tab="irish" onclick="switchTab(this)">🇮🇪 Irish</button>
+    <button class="tab" data-tab="world" onclick="switchTab(this)">🌍 World</button>
+    <button class="tab" data-tab="politics" onclick="switchTab(this)">⚖️ Politics</button>
+    <button class="tab" data-tab="economics" onclick="switchTab(this)">📈 Economics</button>
+  </div>
+</div>
+
+<div id="install-banner-slot"></div>
+
+<div class="feed" id="feed">
+  <div class="loading-state">
+    <div class="loader"></div>
+    Fetching your briefing…
+  </div>
+</div>
+
+<script>
+// ─── FEEDS ───────────────────────────────────────────────────────────────────
+// Using rss2json.com as a free CORS proxy for RSS feeds.
+// Free tier: 10,000 requests/day — more than enough for personal use.
+const PROXY = "https://api.rss2json.com/v1/api.json?rss_url=";
+
+const FEEDS = [
+  // Irish
+  { name: "RTÉ News",       cat: "irish",     rss: "https://www.rte.ie/news/rss/news-headlines.xml" },
+  { name: "The Journal",    cat: "irish",     rss: "https://feeds.thejournal.ie/thejournal.ie" },
+  { name: "Irish Times",    cat: "irish",     rss: "https://www.irishtimes.com/cmlink/the-irish-times-news-1.1319192" },
+  { name: "Irish Examiner", cat: "irish",     rss: "https://www.irishexaminer.com/rss/breakingnews.xml" },
+  { name: "Newstalk",       cat: "irish",     rss: "https://www.newstalk.com/feeds/all" },
+  // World
+  { name: "BBC World",      cat: "world",     rss: "http://feeds.bbci.co.uk/news/world/rss.xml" },
+  { name: "The Guardian",   cat: "world",     rss: "https://www.theguardian.com/world/rss" },
+  { name: "Reuters",        cat: "world",     rss: "https://feeds.reuters.com/reuters/UKWorldNews" },
+  { name: "Al Jazeera",     cat: "world",     rss: "https://www.aljazeera.com/xml/rss/all.xml" },
+  // Politics
+  { name: "Guardian Politics", cat: "politics", rss: "https://www.theguardian.com/politics/rss" },
+  { name: "BBC Politics",   cat: "politics",  rss: "http://feeds.bbci.co.uk/news/politics/rss.xml" },
+  { name: "Politico EU",    cat: "politics",  rss: "https://www.politico.eu/feed/" },
+  // Economics
+  { name: "Guardian Economics", cat: "economics", rss: "https://www.theguardian.com/business/economics/rss" },
+  { name: "Reuters Business",   cat: "economics", rss: "https://feeds.reuters.com/reuters/UKbusinessNews" },
+  { name: "The Irish Economy",  cat: "economics", rss: "https://www.irishtimes.com/business/economy/rss" },
+];
+
+const BADGE = { irish: "badge-irish", world: "badge-world", politics: "badge-politics", economics: "badge-econ" };
+const LABEL = { irish: "🇮🇪 Irish News", world: "🌍 World", politics: "⚖️ Politics", economics: "📈 Economics" };
+
+let allArticles = [];
+let currentTab = "all";
+let openId = null;
+let deferredInstall = null;
+
+// ─── INSTALL PROMPT ──────────────────────────────────────────────────────────
+window.addEventListener("beforeinstallprompt", e => {
+  e.preventDefault();
+  deferredInstall = e;
+  const slot = document.getElementById("install-banner-slot");
+  if (localStorage.getItem("install-dismissed")) return;
+  slot.innerHTML = `
+    <div class="install-banner" id="install-banner">
+      <span><strong>Install Daily Brief</strong><br>Add to your home screen for app-like access</span>
+      <button class="install-btn" onclick="installApp()">Install</button>
+      <button class="close-banner" onclick="dismissBanner()">✕</button>
+    </div>`;
+});
+
+function installApp() {
+  if (!deferredInstall) return;
+  deferredInstall.prompt();
+  deferredInstall.userChoice.then(() => { dismissBanner(); });
+}
+function dismissBanner() {
+  localStorage.setItem("install-dismissed", "1");
+  const b = document.getElementById("install-banner");
+  if (b) b.remove();
+}
+
+// ─── DATE ────────────────────────────────────────────────────────────────────
+function setDate() {
+  const d = new Date();
+  document.getElementById("app-date").textContent = d.toLocaleDateString("en-IE", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric"
+  });
+}
+
+// ─── TIME AGO ────────────────────────────────────────────────────────────────
+function timeAgo(str) {
+  if (!str) return "";
+  const d = new Date(str);
+  if (isNaN(d)) return "";
+  const m = Math.floor((Date.now() - d) / 60000);
+  if (m < 2) return "just now";
+  if (m < 60) return m + "m ago";
+  if (m < 1440) return Math.floor(m / 60) + "h ago";
+  return Math.floor(m / 1440) + "d ago";
+}
+
+// ─── STRIP HTML ──────────────────────────────────────────────────────────────
+function clean(html) {
+  if (!html) return "";
+  return html
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">")
+    .replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&nbsp;/g," ")
+    .replace(/\s+/g," ").trim();
+}
+
+// ─── FETCH ONE FEED ──────────────────────────────────────────────────────────
+async function fetchFeed(feed) {
+  const url = PROXY + encodeURIComponent(feed.rss) + "&count=8";
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    const data = await res.json();
+    if (data.status !== "ok" || !data.items) return [];
+    return data.items.map(item => ({
+      id: item.guid || item.link || item.title,
+      title: clean(item.title || ""),
+      summary: clean(item.description || item.content || "").slice(0, 320),
+      link: item.link || "",
+      date: item.pubDate || "",
+      source: feed.name,
+      cat: feed.cat,
+    })).filter(a => a.title);
+  } catch { return []; }
+}
+
+// ─── LOAD ALL ────────────────────────────────────────────────────────────────
+async function loadNews() {
+  const dot = document.getElementById("status-dot");
+  const btn = document.getElementById("refresh-btn");
+  dot.className = "status-dot loading";
+  btn.classList.add("spinning");
+
+  document.getElementById("feed").innerHTML = `
+    <div class="loading-state">
+      <div class="loader"></div>
+      Fetching your briefing…
+    </div>`;
+
+  const results = await Promise.allSettled(FEEDS.map(fetchFeed));
+  allArticles = [];
+  results.forEach(r => { if (r.status === "fulfilled") allArticles.push(...r.value); });
+
+  // deduplicate by title
+  const seen = new Set();
+  allArticles = allArticles.filter(a => {
+    const key = a.title.slice(0, 60).toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key); return true;
+  });
+
+  // sort newest first
+  allArticles.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  dot.className = allArticles.length ? "status-dot" : "status-dot error";
+  btn.classList.remove("spinning");
+
+  updateTabCounts();
+  renderFeed();
+}
+
+// ─── TAB COUNTS ──────────────────────────────────────────────────────────────
+function updateTabCounts() {
+  document.querySelectorAll(".tab[data-tab]").forEach(tab => {
+    const t = tab.dataset.tab;
+    const count = t === "all" ? allArticles.length : allArticles.filter(a => a.cat === t).length;
+    const existing = tab.querySelector(".count-badge");
+    if (existing) existing.remove();
+    if (count > 0) {
+      const badge = document.createElement("span");
+      badge.className = "count-badge";
+      badge.textContent = count;
+      tab.appendChild(badge);
+    }
+  });
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function renderFeed() {
+  const feed = document.getElementById("feed");
+  let list = currentTab === "all" ? allArticles : allArticles.filter(a => a.cat === currentTab);
+
+  if (!list.length) {
+    feed.innerHTML = `
+      <div class="error-state">
+        <div class="error-icon">📡</div>
+        <div class="error-title">No articles loaded</div>
+        <div class="error-msg">
+          Couldn't reach the news feeds.<br>
+          Check your internet connection and try again.
+        </div>
+        <button class="retry-btn" onclick="loadNews()">Try again</button>
+      </div>`;
+    return;
+  }
+
+  // group by category when on "all" tab
+  let html = "";
+  if (currentTab === "all") {
+    const cats = ["irish", "politics", "economics", "world"];
+    cats.forEach(cat => {
+      const items = list.filter(a => a.cat === cat).slice(0, 6);
+      if (!items.length) return;
+      html += `<div class="section-label">${LABEL[cat]}</div>`;
+      html += items.map((a, i) => articleHTML(a, cat + i)).join("");
+    });
+  } else {
+    html = list.slice(0, 20).map((a, i) => articleHTML(a, "item" + i)).join("");
+  }
+
+  feed.innerHTML = html;
+}
+
+function articleHTML(a, uid) {
+  const summary = a.summary.length > 10 ? a.summary + "…" : "No summary available.";
+  return `
+    <div class="article" id="art-${uid}" onclick="toggleArticle('${uid}', event)">
+      <div class="article-header">
+        <div class="article-meta">
+          <span class="badge ${BADGE[a.cat]}">${a.cat.toUpperCase()}</span>
+          <span class="article-source">${a.source}</span>
+          <span class="article-time">${timeAgo(a.date)}</span>
+          <span class="chevron">▾</span>
+        </div>
+        <div class="article-title">${a.title}</div>
+      </div>
+      <div class="article-body">
+        <div class="article-body-inner">
+          <div class="article-summary">${summary}</div>
+          ${a.link ? `<a class="read-link" href="${a.link}" target="_blank" onclick="event.stopPropagation()">Read full article →</a>` : ""}
+        </div>
+      </div>
+    </div>`;
+}
+
+function toggleArticle(uid, e) {
+  const el = document.getElementById("art-" + uid);
+  el.classList.toggle("open");
+}
+
+// ─── TAB SWITCH ──────────────────────────────────────────────────────────────
+function switchTab(btn) {
+  currentTab = btn.dataset.tab;
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  btn.classList.add("active");
+  renderFeed();
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+setDate();
+loadNews();
+
+// Register service worker for offline support
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+</script>
+</body>
+</html>

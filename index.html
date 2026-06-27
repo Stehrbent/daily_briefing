@@ -339,7 +339,8 @@
 // ─── FEEDS ───────────────────────────────────────────────────────────────────
 // Using rss2json.com as a free CORS proxy for RSS feeds.
 // Free tier: 10,000 requests/day — more than enough for personal use.
-const PROXY = "https://api.rss2json.com/v1/api.json?rss_url=";
+const API_KEY = "hsvqam8eapqh9q4j1dgnqtnirnlg4hyavkkgzfh5";
+const PROXY = `https://api.rss2json.com/v1/api.json?api_key=${API_KEY}&rss_url=`;
 
 const FEEDS = [
   // Irish

@@ -441,21 +441,26 @@ function renderDashboard() {
 
   const kinnegad = weatherData.kinnegad;
   const dublin = weatherData.dublin;
+  const chisinau = weatherData.chisinau;
 
   return `
     ${installHtml}
     <div class="dashboard">
-      <div class="widget">
-        <div class="widget-label">🌤️ Kinnegad</div>
-        ${weatherWidget(kinnegad)}
-      </div>
-      <div class="widget">
-        <div class="widget-label">🌤️ Dublin</div>
-        ${weatherWidget(dublin)}
-      </div>
-      <div class="widget">
-        <div class="widget-label">🌿 Pollen — Midlands</div>
-        ${pollenWidget(pollenData)}
+     <div class="widget">
+  <div class="widget-label">🌤️ Kinnegad</div>
+  ${weatherWidget(kinnegad)}
+</div>
+<div class="widget">
+  <div class="widget-label">🌤️ Dublin</div>
+  ${weatherWidget(dublin)}
+</div>
+<div class="widget">
+  <div class="widget-label">🌤️ Chisinau</div>
+  ${weatherWidget(chisinau)}
+</div>
+<div class="widget">
+  <div class="widget-label">🌿 Pollen — Midlands</div>
+  ${pollenWidget(pollenData)}
       </div>
       <div class="widget">
         <div class="widget-label">⚠️ Met Éireann Alerts</div>
@@ -524,7 +529,7 @@ async function refreshAll() {
   document.getElementById("main-content").innerHTML = `<div class="loading-state"><span class="mini-loader"></span>Refreshing your briefing…</div>`;
 
   // Load everything in parallel
-  const [kinnegad, dublin, chisinau, pollen, alerts, markets, ...feedResults] = await Promise.all([
+const [kinnegad, dublin, chisinau, pollen, alerts, markets, ...feedResults] = await Promise.all([
   fetchWeather(53.4583, -7.0967, "Kinnegad"),
   fetchWeather(53.3498, -6.2603, "Dublin"),
   fetchWeather(47.0105, 28.8638, "Chisinau"),

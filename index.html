@@ -203,10 +203,12 @@ const FEEDS = [
   { name:"Reuters Finance", cat:"finance", rss:"https://feeds.reuters.com/reuters/UKfinanceNews" },
   { name:"Bloomberg", cat:"finance", rss:"https://feeds.bloomberg.com/markets/news.rss" },
   { name:"Investopedia", cat:"finance", rss:"https://www.investopedia.com/feedbuilder/feed/getfeed?feedName=rss_headline" },
-  // MOLDOVA
-  { name:"Moldova.org", cat:"moldova", rss:"https://www.moldova.org/en/feed/" },
-  { name:"Balkan Insight", cat:"moldova", rss:"https://balkaninsight.com/feed/" },
-  { name:"Moldovan Politics", cat:"moldova", rss:"https://www.europalibera.org/api/zgpz_evtt" },
+  // MOLDOVA — surse locale neutre (română/rusă)
+  { name:"ZDG (Ziarul de Gardă)", cat:"moldova", rss:"https://www.zdg.md/feed/" },
+  { name:"NewsMaker MD", cat:"moldova", rss:"https://newsmaker.md/feed/" },
+  { name:"Europa Liberă Moldova", cat:"moldova", rss:"https://www.europalibera.org/api/zgpz_rypt" },
+  { name:"Știri Moldova", cat:"moldova", rss:"https://stiri.moldova.org/feed/" },
+  { name:"Moldova.org", cat:"moldova", rss:"https://www.moldova.org/feed/" },
 ];
 
 const BADGE_CLASS = { irish:"badge-irish", world:"badge-world", politics:"badge-politics", economics:"badge-economics", finance:"badge-finance", moldova:"badge-moldova" };
@@ -300,10 +302,10 @@ async function fetchAlerts() {
 
 // ── MARKETS via Finnhub (free, CORS-friendly) ────────────────────────────────
 // Get your free key in 30 seconds at finnhub.io (no credit card)
-const FINNHUB_KEY = "d90fdh1r01qk8bfldiagd90fdh1r01qk8bfldib0";
+const FINNHUB_KEY = "PASTE_YOUR_FINNHUB_KEY_HERE";
 
 async function fetchMarkets() {
-  if (FINNHUB_KEY === "PASTE_YOUR_FINNHUB_KEY_HERE") {
+  if (FINNHUB_KEY === "d90fdh1r01qk8bfldiagd90fdh1r01qk8bfldib0") {
     return [{ name:"Add Finnhub key", value:"—", change:"0.00", up:true, note:true }];
   }
   const indices = [
@@ -522,16 +524,17 @@ async function refreshAll() {
   document.getElementById("main-content").innerHTML = `<div class="loading-state"><span class="mini-loader"></span>Refreshing your briefing…</div>`;
 
   // Load everything in parallel
-  const [kinnegad, dublin, pollen, alerts, markets, ...feedResults] = await Promise.all([
-    fetchWeather(53.4583, -7.0967, "Kinnegad"),
-    fetchWeather(53.3498, -6.2603, "Dublin"),
-    fetchPollen(),
-    fetchAlerts(),
-    fetchMarkets(),
-    ...FEEDS.map(fetchFeed)
-  ]);
+  const [kinnegad, dublin, chisinau, pollen, alerts, markets, ...feedResults] = await Promise.all([
+  fetchWeather(53.4583, -7.0967, "Kinnegad"),
+  fetchWeather(53.3498, -6.2603, "Dublin"),
+  fetchWeather(47.0105, 28.8638, "Chisinau"),
+  fetchPollen(),
+  fetchAlerts(),
+  fetchMarkets(),
+  ...FEEDS.map(fetchFeed)
+]);
 
-  weatherData = { kinnegad, dublin };
+weatherData = { kinnegad, dublin, chisinau };
   pollenData = pollen;
   alertsData = alerts;
   marketsData = markets;

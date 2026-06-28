@@ -51,9 +51,43 @@
     .main { padding: 12px 14px; }
 
     /* DASHBOARD */
-    .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
-    .widget { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; }
-    .widget.wide { grid-column: 1 / -1; }
+.dashboard {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.widget {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+
+.widget.weather-card {
+  grid-column: span 2;
+}
+
+.widget.half {
+  grid-column: span 3;
+}
+
+.widget.wide {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 900px) {
+  .dashboard {
+    grid-template-columns: 1fr;
+  }
+
+  .widget.weather-card,
+  .widget.half,
+  .widget.wide {
+    grid-column: 1 / -1;
+  }
+}
     .widget-label { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
     .widget-main { font-size: 22px; font-weight: 700; line-height: 1.1; }
     .widget-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
@@ -446,30 +480,35 @@ function renderDashboard() {
   return `
     ${installHtml}
     <div class="dashboard">
-     <div class="widget">
+<div class="widget weather-card">
   <div class="widget-label">🌤️ Kinnegad</div>
   ${weatherWidget(kinnegad)}
 </div>
-<div class="widget">
+
+<div class="widget weather-card">
   <div class="widget-label">🌤️ Dublin</div>
   ${weatherWidget(dublin)}
 </div>
-<div class="widget">
+
+<div class="widget weather-card">
   <div class="widget-label">🌤️ Chisinau</div>
   ${weatherWidget(chisinau)}
 </div>
-<div class="widget">
+
+<div class="widget half">
   <div class="widget-label">🌿 Pollen — Midlands</div>
   ${pollenWidget(pollenData)}
-      </div>
-      <div class="widget">
-        <div class="widget-label">⚠️ Met Éireann Alerts</div>
-        ${alertsWidget(alertsData)}
-      </div>
-      <div class="widget wide">
-        <div class="widget-label">📊 Markets</div>
-        ${marketsWidget(marketsData)}
-      </div>
+</div>
+
+<div class="widget half">
+  <div class="widget-label">⚠️ Met Éireann Alerts</div>
+  ${alertsWidget(alertsData)}
+</div>
+
+<div class="widget wide">
+  <div class="widget-label">📊 Markets</div>
+  ${marketsWidget(marketsData)}
+</div>
     </div>
     <div class="section-label">🇮🇪 Top Irish Stories</div>
     ${allArticles.filter(a=>a.cat==="irish").slice(0,4).map((a,i)=>articleHTML(a,"d-irish-"+i)).join("")}

@@ -298,29 +298,32 @@ async function fetchAlerts() {
   return [];
 }
 
-// ── MARKETS (Yahoo Finance RSS via proxy) ─────────────────────────────────────
+// ── MARKETS via Finnhub (free, CORS-friendly) ────────────────────────────────
+// Get your free key in 30 seconds at finnhub.io (no credit card)
+const FINNHUB_KEY = "PASTE_YOUR_FINNHUB_KEY_HERE";
+
 async function fetchMarkets() {
+  if (FINNHUB_KEY === "PASTE_YOUR_FINNHUB_KEY_HERE") {
+    return [{ name:"Add Finnhub key", value:"—", change:"0.00", up:true, note:true }];
+  }
   const indices = [
-    { name:"S&P 500", sym:"^GSPC" },
-    { name:"FTSE 100", sym:"^FTSE" },
-    { name:"Euro Stoxx", sym:"^STOXX50E" },
+    { name:"S&P 500",    sym:"SPY"   },
+    { name:"FTSE 100",   sym:"EWU"   },
+    { name:"Euro Stoxx", sym:"EZU"   },
+    { name:"Nasdaq",     sym:"QQQ"   },
   ];
-  // Use Yahoo Finance JSON endpoint (public, no key)
   const results = [];
-  for (const idx of indices) {
+  await Promise.all(indices.map(async idx => {
     try {
-      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(idx.sym)}?interval=1d&range=2d`;
-      const r = await fetch(url);
+      const url = `https://finnhub.io/api/v1/quote?symbol=${idx.sym}&token=${FINNHUB_KEY}`;
+      const r = await fetch(url, { signal: AbortSignal.timeout(6000) });
       const d = await r.json();
-      const closes = d.chart?.result?.[0]?.indicators?.quote?.[0]?.close;
-      if (closes && closes.length >= 2) {
-        const prev = closes[closes.length-2];
-        const curr = closes[closes.length-1];
-        const chg = ((curr-prev)/prev*100).toFixed(2);
-        results.push({ name: idx.name, value: curr.toLocaleString("en",{maximumFractionDigits:0}), change: chg, up: chg > 0 });
+      if (d && d.c) {
+        const chg = (d.dp ?? 0).toFixed(2);
+        results.push({ name: idx.name, value: d.c.toLocaleString("en",{minimumFractionDigits:2,maximumFractionDigits:2}), change: chg, up: parseFloat(chg) >= 0 });
       }
     } catch {}
-  }
+  }));
   return results;
 }
 
@@ -380,6 +383,13 @@ function pollenWidget(p) {
 
 function marketsWidget(m) {
   if (!m.length) return `<div style="color:var(--muted);font-size:12px">Market data unavailable</div>`;
+  if (m[0]?.note) return `
+    <div style="font-size:12px;color:var(--muted);line-height:1.6">
+      To enable live markets, get a free API key at
+      <a href="https://finnhub.io" target="_blank" style="color:var(--accent)">finnhub.io</a>
+      (30 sec, no card), then paste it into the app code where it says
+      <code style="background:var(--surface2);padding:1px 5px;border-radius:4px">PASTE_YOUR_FINNHUB_KEY_HERE</code>
+    </div>`;
   return m.map(idx => `
     <div class="market-row">
       <span class="market-name">${idx.name}</span>

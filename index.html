@@ -522,38 +522,55 @@ function doInstall() {
 }
 
 // ── LOAD ALL ──────────────────────────────────────────────────────────────────
+// Wrap any promise with a timeout so nothing blocks forever
+function withTimeout(promise, ms, fallback) {
+  return Promise.race([
+    promise,
+    new Promise(resolve => setTimeout(() => resolve(fallback), ms))
+  ]);
+}
+
 async function refreshAll() {
   const btn = document.getElementById("refresh-btn");
   btn.classList.add("spinning");
   document.getElementById("main-content").innerHTML = `<div class="loading-state"><span class="mini-loader"></span>Refreshing your briefing…</div>`;
 
-  // Load everything in parallel
-  const [kinnegad, dublin, chisinau, pollen, alerts, markets, ...feedResults] = await Promise.all([
-    fetchWeather(53.4583, -7.0967, "Kinnegad"),
-    fetchWeather(53.3498, -6.2603, "Dublin"),
-    fetchWeather(47.0105, 28.8638, "Chișinău"),
-    fetchPollen(),
-    fetchAlerts(),
-    fetchMarkets(),
-    ...FEEDS.map(fetchFeed)
+  // Phase 1: load weather + pollen fast (5s max each), render dashboard immediately
+  const [kinnegad, dublin, chisinau, pollen, alerts] = await Promise.all([
+    withTimeout(fetchWeather(53.4583, -7.0967, "Kinnegad"), 5000, null),
+    withTimeout(fetchWeather(53.3498, -6.2603, "Dublin"),   5000, null),
+    withTimeout(fetchWeather(47.0105, 28.8638, "Chișinău"), 5000, null),
+    withTimeout(fetchPollen(), 5000, { level:"Unknown", cls:"pollen-low", pct:0, grass:0 }),
+    withTimeout(fetchAlerts(), 5000, []),
   ]);
 
   weatherData = { kinnegad, dublin, chisinau };
   pollenData = pollen;
   alertsData = alerts;
-  marketsData = markets;
-
+  marketsData = [];
   allArticles = [];
+
+  // Render dashboard straight away so user sees weather immediately
+  btn.classList.remove("spinning");
+  render();
+
+  // Phase 2: load markets + news in background, update when ready
+  const [markets, ...feedResults] = await Promise.all([
+    withTimeout(fetchMarkets(), 8000, []),
+    ...FEEDS.map(f => withTimeout(fetchFeed(f), 9000, []))
+  ]);
+
+  marketsData = markets;
   feedResults.forEach(items => allArticles.push(...items));
-  // deduplicate
+
   const seen = new Set();
   allArticles = allArticles.filter(a => {
     const k = a.title.slice(0,60).toLowerCase();
     if (seen.has(k)) return false; seen.add(k); return true;
   });
-  allArticles.sort((a,b)=>new Date(b.date)-new Date(a.date));
+  allArticles.sort((a,b) => new Date(b.date) - new Date(a.date));
 
-  btn.classList.remove("spinning");
+  // Re-render with full data
   render();
 }
 

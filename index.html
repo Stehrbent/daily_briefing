@@ -305,7 +305,7 @@ async function fetchAlerts() {
 const FINNHUB_KEY = "d90fdh1r01qk8bfldiagd90fdh1r01qk8bfldib0";
 
 async function fetchMarkets() {
-  if (FINNHUB_KEY === "PASTE_YOUR_FINNHUB_KEY_HERE") {
+  if (!FINNHUB_KEY || FINNHUB_KEY.includes("PASTE")) {
     return [{ name:"Add Finnhub key", value:"—", change:"0.00", up:true, note:true }];
   }
   const indices = [
@@ -578,7 +578,15 @@ async function refreshAll() {
 const d = new Date();
 document.getElementById("app-date").textContent = d.toLocaleDateString("en-IE", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+// Unregister old service workers and clear cache to prevent stale loads
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(r => r.unregister());
+  });
+  caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+  // Re-register fresh after a short delay
+  setTimeout(() => navigator.serviceWorker.register("sw.js").catch(()=>{}), 2000);
+}
 
 refreshAll();
 </script>
